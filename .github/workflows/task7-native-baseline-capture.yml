@@ -5,8 +5,8 @@ on:
     branches: [extract/initial-library]
     paths:
       - .github/workflows/task7-native-baseline-capture.yml
-      - tests/baseline_morse_capture.rs
-      - tests/baseline_tone_capture.rs
+      - validation/baseline_morse_capture.rs
+      - validation/baseline_tone_capture.rs
 
 permissions:
   contents: read
@@ -37,4 +37,4 @@ jobs:
           test "$(git -C librptadvmorse/.work/rpt_advanced rev-parse HEAD:rust/core/src/audio/tone.rs)" = 5b57bb2897c99bf49b2945f1b60dc3be384c4b42
           bash librptadvmorse/tools/run-in-quality-container.sh \
             ghcr.io/cpeter1207/rpt-advanced-quality-debian13:latest \
-            sh -ec 'rustc --edition=2024 tests/baseline_morse_capture.rs -o /tmp/morse-baseline && /tmp/morse-baseline && rustc --edition=2024 tests/baseline_tone_capture.rs -o /tmp/tone-baseline && /tmp/tone-baseline'
+            sh -ec 'rustc --edition=2024 validation/baseline_morse_capture.rs -o /tmp/morse-baseline && /tmp/morse-baseline && rustc --edition=2024 validation/baseline_tone_capture.rs -o /tmp/tone-baseline && /tmp/tone-baseline'
