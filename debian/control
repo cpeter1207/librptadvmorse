@@ -1,0 +1,22 @@
+Source: librptadvmorse
+Section: libs
+Priority: optional
+Maintainer: Chris Peterson <cpeter1207@users.noreply.github.com>
+Build-Depends: cargo (>= 1.85), debhelper-compat (= 13), librptadvtone-dev (>= 0.1.0~alpha1-1), pkg-config, rustc (>= 1.85)
+Standards-Version: 4.7.2
+Homepage: https://github.com/cpeter1207/librptadvmorse
+Rules-Requires-Root: no
+
+Package: librptadvmorse1
+Architecture: any
+Multi-Arch: same
+Depends: ${misc:Depends}, ${shlibs:Depends}, librptadvtone1 (>= 0.1.0~alpha1-1)
+Description: portable 48 kHz morse core for rpt_advanced
+ Versioned native morse generator ABI used by rpt_advanced components.
+
+Package: librptadvmorse-dev
+Architecture: any
+Multi-Arch: same
+Depends: ${misc:Depends}, librptadvmorse1 (= ${binary:Version})
+Description: development files for the rpt_advanced morse core
+ Public C header and pkg-config metadata for dynamic consumers.

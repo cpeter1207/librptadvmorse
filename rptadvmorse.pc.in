@@ -1,0 +1,10 @@
+prefix=@PREFIX@
+libdir=@LIBDIR@
+includedir=${prefix}/include
+abi_version=@ABI_VERSION@
+
+Name: librptadvmorse
+Description: Portable 48 kHz morse ABI for rpt_advanced
+Version: @VERSION@
+Libs: -L${libdir} -lrptadvmorse
+Cflags: -I${includedir}
