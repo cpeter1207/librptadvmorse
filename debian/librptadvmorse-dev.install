@@ -1,0 +1,3 @@
+usr/include/rptadvmorse/rptadvmorse.h
+usr/lib/*/librptadvmorse.so
+usr/lib/*/pkgconfig/rptadvmorse.pc
