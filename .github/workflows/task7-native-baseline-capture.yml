@@ -1,0 +1,38 @@
+name: Temporary native original-source baseline capture
+
+on:
+  push:
+    branches: [extract/initial-library]
+    paths:
+      - .github/workflows/task7-native-baseline-capture.yml
+      - tests/baseline_morse_capture.rs
+      - tests/baseline_tone_capture.rs
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Check out temporary capture harness
+        uses: actions/checkout@v4
+        with:
+          path: librptadvmorse
+      - name: Check out immutable original controller source
+        uses: actions/checkout@v4
+        with:
+          repository: cpeter1207/rpt_advanced
+          ref: c63db090e90de2c97444ccb2e4df7f53328701f8
+          path: librptadvmorse/.work/rpt_advanced
+      - name: Verify provenance and capture original-source hashes
+        shell: bash
+        run: |
+          test "$(git -C librptadvmorse/.work/rpt_advanced rev-parse HEAD)" = c63db090e90de2c97444ccb2e4df7f53328701f8
+          bash librptadvmorse/tools/run-in-quality-container.sh \
+            ghcr.io/cpeter1207/rpt-advanced-quality-debian13:latest \
+            sh -ec 'rustc --edition=2024 tests/baseline_morse_capture.rs -o /tmp/morse-baseline && /tmp/morse-baseline && rustc --edition=2024 tests/baseline_tone_capture.rs -o /tmp/tone-baseline && /tmp/tone-baseline'
