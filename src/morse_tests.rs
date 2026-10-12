@@ -1,23 +1,4 @@
-use super::{MorseRenderer, SAMPLE_RATE_HZ, Segment};
-
-fn original_waveform_bits(segments: &[Segment], frequency_hz: f32, level_db: i8) -> Vec<u32> {
-    let step = frequency_hz / SAMPLE_RATE_HZ as f32;
-    let amplitude = 10_f32.powf(f32::from(level_db) / 20.0);
-    let mut bits = Vec::new();
-    for segment in segments {
-        match *segment {
-            Segment::Tone(samples) => {
-                let mut phase = 0.0_f32;
-                for _ in 0..samples {
-                    bits.push((amplitude * (core::f32::consts::TAU * phase).sin()).to_bits());
-                    phase = (phase + step).fract();
-                }
-            }
-            Segment::Gap(samples) => bits.extend(std::iter::repeat_n(0, samples as usize)),
-        }
-    }
-    bits
-}
+use super::MorseRenderer;
 
 fn render_all(renderer: &mut MorseRenderer, block: usize) -> Vec<f32> {
     let mut rendered = Vec::new();
@@ -104,14 +85,30 @@ fn restart_replays_the_message_from_its_initial_phase() {
 #[test]
 fn shared_morse_matches_baseline_bits() {
     let alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/.,?-=+@()'!\":;_$&";
-    for (text, speed, frequency, level, expected_len, amd64_hash) in [
-        (alphabet, 100, 1_000.0, -6, 461_376, 0x8b939bdaf931e465_u64),
-        ("EE E T I", 17, 1_000.0, -6, 111_811, 0x68ab9113b68e4c03),
-        ("E T I E", 37, 1_250.0, -11, 45_145, 0x1d783fb1fa366fc0),
-    ] {
-        let prepared = MorseRenderer::new(text, speed, frequency, level).unwrap();
-        let expected_bits = original_waveform_bits(&prepared.segments, frequency, level);
-        assert_eq!(expected_bits.len(), expected_len);
+    // Captured independently from unchanged controller source on native runners:
+    // https://github.com/cpeter1207/librptadvmorse/actions/runs/38287693814
+    // The two architectures happen to agree; each has its own original-source anchor.
+    let expected_hashes = match std::env::consts::ARCH {
+        "x86_64" => [
+            0x8b939bdaf931e465_u64,
+            0x68ab9113b68e4c03,
+            0x1d783fb1fa366fc0,
+        ],
+        "aarch64" => [
+            0x8b939bdaf931e465_u64,
+            0x68ab9113b68e4c03,
+            0x1d783fb1fa366fc0,
+        ],
+        architecture => panic!("missing original-source baseline for {architecture}"),
+    };
+    for ((text, speed, frequency, level, expected_len), expected_hash) in [
+        (alphabet, 100, 1_000.0, -6, 461_376),
+        ("EE E T I", 17, 1_000.0, -6, 111_811),
+        ("E T I E", 37, 1_250.0, -11, 45_145),
+    ]
+    .into_iter()
+    .zip(expected_hashes)
+    {
         for block in [1, 7, 960] {
             let mut renderer = MorseRenderer::new(text, speed, frequency, level).unwrap();
             let mut count = 0;
@@ -123,8 +120,7 @@ fn shared_morse_matches_baseline_bits() {
                     break;
                 }
                 count += written;
-                for (index, sample) in output[..written].iter().enumerate() {
-                    assert_eq!(sample.to_bits(), expected_bits[count - written + index]);
+                for sample in &output[..written] {
                     for byte in sample.to_bits().to_le_bytes() {
                         hash ^= u64::from(byte);
                         hash = hash.wrapping_mul(0x100000001b3);
@@ -132,9 +128,7 @@ fn shared_morse_matches_baseline_bits() {
                 }
             }
             assert_eq!(count, expected_len, "block {block}");
-            if cfg!(target_arch = "x86_64") {
-                assert_eq!(hash, amd64_hash, "block {block}");
-            }
+            assert_eq!(hash, expected_hash, "block {block}");
         }
     }
     let mut renderer = MorseRenderer::new("E T I E", 37, 1_250.0, -11).unwrap();
